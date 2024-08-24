@@ -4,10 +4,15 @@ namespace frontend\controllers;
 
 use common\models\Author;
 use common\models\AuthorSearch;
+use common\models\BookSearch;
+use Yii;
+use yii\data\ArrayDataProvider;
 use yii\filters\AccessControl;
 use yii\web\Controller;
+use yii\web\ForbiddenHttpException;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
+use yii\web\Response;
 
 /**
  * AuthorController implements the CRUD actions for Author model.
@@ -72,8 +77,12 @@ class AuthorController extends Controller
      */
     public function actionView($id)
     {
+        $bookSearchModel = new BookSearch();
+        $bookProvider = $bookSearchModel->search(Yii::$app->request->queryParams, author_id: $id);
+        
         return $this->render('view', [
             'model' => $this->findModel($id),
+            'bookProvider' => $bookProvider,
         ]);
     }
 
@@ -148,4 +157,71 @@ class AuthorController extends Controller
 
         throw new NotFoundHttpException('The requested page does not exist.');
     }
+
+    /**
+     * Находит записи которые содержат указанную строку и ограничивает
+     * количество одновременно отображаемых элементов
+     * 
+     * @param string $term искомая строка
+     * @param string $page номер страницы
+     * @param string $limit количество элементов на странице
+     * @return array
+     * @throws ForbiddenHttpException
+     */
+    public function actionList($term = null, $page = 1, $limit = 20)
+    {
+        if (Yii::$app->request->isAjax) {
+            $out = ['more' => false, 'results' => []];
+            $query = Author::find();
+            $data = $query
+                ->select([
+                    'id' => '[[id]]',
+                    'text' => '[[fio]]',
+                ])
+                ->andFilterWhere(['like', '[[fio]]', $term])
+                ->orderBy(['fio' => SORT_ASC])
+                ->groupBy('id')
+                ->limit($limit + 1)
+                ->offset(($page - 1) * $limit)
+                ->asArray()
+                ->all();
+            if (count($data) === $limit + 1) {
+                $out['more'] = true;
+                array_pop($data);
+            }
+            $out['results'] = $data;
+            Yii::$app->response->format = Response::FORMAT_JSON;
+            return $out;
+        }
+        throw new ForbiddenHttpException;
+    }
+
+    /**
+     * Действие на вывод топ 10 авторов по количеству выпущенных книг за определенный год
+     * @return string
+     */
+    public function actionTop()
+    {
+        $year = Yii::$app->request->get('year', date('Y'));
+
+        $authors = Author::findTopAuthors($year)->all();
+
+        $dataProvider = new ArrayDataProvider([
+            'allModels' => $authors,
+        ]);
+
+        return $this->render('top-authors', [
+            'dataProvider' => $dataProvider,
+            'year' => $year,
+        ]);
+    }
+
+    /**
+     * Подписка на автора
+     * @return void
+     */
+    // public function actionSub()
+    // {
+
+    // }
 }

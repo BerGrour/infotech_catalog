@@ -55,4 +55,28 @@ class File extends \yii\db\ActiveRecord
     {
         return $this->hasMany(Book::class, ['file_id' => 'id']);
     }
+    
+    /**
+     * Возвращает ссылку на файл
+     * @return string
+     */
+    public function getLinkOnFile()
+    {
+        $content = null;
+        if ($this->filepath[0] != '/') {
+            $content = '/';
+        }
+        $content .= $this->filepath;
+        return $content;
+    }
+
+    /**
+     * Получение относительного пути к файлу по URL
+     * @return string
+     */
+    public function getPathLink()
+    {
+        $content = "/" . $this->filepath;
+        return $content;
+    }
 }

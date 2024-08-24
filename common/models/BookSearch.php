@@ -11,14 +11,15 @@ use common\models\Book;
  */
 class BookSearch extends Book
 {
+    public $authorname;
     /**
      * {@inheritdoc}
      */
     public function rules()
     {
         return [
-            [['id', 'year', 'file_id'], 'integer'],
-            [['title', 'description', 'isbn'], 'safe'],
+            [['id', 'year'], 'integer'],
+            [['title', 'description', 'isbn', 'authorname'], 'safe'],
         ];
     }
 
@@ -35,14 +36,18 @@ class BookSearch extends Book
      * Creates data provider instance with search query applied
      *
      * @param array $params
+     * @param int|null $author_id
      *
      * @return ActiveDataProvider
      */
-    public function search($params)
+    public function search($params, $author_id = null)
     {
         $query = Book::find();
 
-        // add conditions that should always apply here
+        if (isset($author_id)) {
+            $query->joinWith('bookAuthors')
+                ->andWhere(['author_id'=> $author_id]);
+        }
 
         $dataProvider = new ActiveDataProvider([
             'query' => $query,
@@ -51,17 +56,18 @@ class BookSearch extends Book
         $this->load($params);
 
         if (!$this->validate()) {
-            // uncomment the following line if you do not want to return any records when validation fails
-            // $query->where('0=1');
             return $dataProvider;
         }
 
-        // grid filtering conditions
         $query->andFilterWhere([
             'id' => $this->id,
             'year' => $this->year,
-            'file_id' => $this->file_id,
         ]);
+
+        if ($this->authorname) {
+            $query->joinWith('bookAuthors.author')
+                ->andFilterWhere(['like','author.fio', $this->authorname]);
+        }
 
         $query->andFilterWhere(['like', 'title', $this->title])
             ->andFilterWhere(['like', 'description', $this->description])

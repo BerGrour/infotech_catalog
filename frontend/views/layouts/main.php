@@ -36,6 +36,7 @@ AppAsset::register($this);
     ]);
     $menuItems = [
         ['label' => 'Авторы', 'url' => ['/author/index']],
+        ['label' => 'Отчет', 'url' => ['/author/top']],
     ];
 
     echo Nav::widget([

@@ -1,5 +1,6 @@
 <?php
 
+use common\models\Book;
 use yii\helpers\Html;
 use yii\widgets\DetailView;
 
@@ -31,12 +32,24 @@ $this->params['breadcrumbs'][] = $this->title;
     <?= DetailView::widget([
         'model' => $model,
         'attributes' => [
-            'id',
             'title',
             'year',
             'description',
             'isbn',
-            'file_id',
+            [
+                'label' => 'Автор(ы)',
+                'format' => 'raw',
+                'value' => function(Book $model) {
+                    return $model->showAuthor(link: true);
+                },
+            ],
+            [
+                'attribute' => 'file_id',
+                'format' => 'raw',
+                'value' => function(Book $model) {
+                    return $model->getFileIcon();
+                }
+            ],
         ],
     ]) ?>
 

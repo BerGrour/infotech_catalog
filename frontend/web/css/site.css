@@ -101,3 +101,15 @@ a.desc:after {
 {
     text-decoration: none;
 }
+
+.field-book-uploadedfile {
+    flex-grow: 1;
+}
+
+input.without-arrows::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+}
+
+.form-group .btn-success {
+    margin-top: 10px;
+}

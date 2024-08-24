@@ -3,17 +3,24 @@
 namespace frontend\controllers;
 
 use common\models\Book;
+use common\models\BookAuthor;
 use common\models\BookSearch;
+use common\models\File;
+use Yii;
 use yii\filters\AccessControl;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
+use yii\web\ForbiddenHttpException;
+use yii\web\UploadedFile;
 
 /**
  * BookController implements the CRUD actions for Book model.
  */
 class BookController extends Controller
 {
+    const DIR = 'uploads/books/';
+
     /**
      * @inheritDoc
      */
@@ -24,10 +31,10 @@ class BookController extends Controller
             [
                 'access' => [
                     'class' => AccessControl::class,
-                    'only' => ['create', 'update', 'delete'],
+                    'only' => ['create', 'update', 'delete', 'deleteFile'],
                     'rules' => [
                         [
-                            'actions' => ['create', 'update','delete'],
+                            'actions' => ['create', 'update','delete', 'deleteFile'],
                             'allow' => true,
                             'roles' => ['@'],
                         ],
@@ -82,7 +89,30 @@ class BookController extends Controller
         $model = new Book();
 
         if ($this->request->isPost) {
+            $file = UploadedFile::getInstance($model, 'uploadedFile');
+            if ($file) {
+                $filename = time() . '.' . $file->extension;
+                $file->saveAs(self::DIR . $filename);
+    
+                $fileModel = new File();
+                $fileModel->filepath = self::DIR . $filename;
+                $fileModel->filename = $file->name;
+                $fileModel->save();
+    
+                $model->file_id = $fileModel->id;
+            }
+
             if ($model->load($this->request->post()) && $model->save()) {
+                $selectedAuthors = Yii::$app->request->post('Book')['bookAuthorIds'];
+                if (!empty($selectedAuthors)) {
+                    foreach ($selectedAuthors as $authorId) {
+                        $bookAuthor = new BookAuthor();
+                        $bookAuthor->book_id = $model->id;
+                        $bookAuthor->author_id = $authorId;
+                        $bookAuthor->save();
+                    }
+                }
+
                 return $this->redirect(['view', 'id' => $model->id]);
             }
         } else {
@@ -105,8 +135,41 @@ class BookController extends Controller
     {
         $model = $this->findModel($id);
 
-        if ($this->request->isPost && $model->load($this->request->post()) && $model->save()) {
-            return $this->redirect(['view', 'id' => $model->id]);
+        $attachedFile = $model->getFile()->one();
+        if ($attachedFile) {
+            $model->uploadedFile = $attachedFile->filename;
+        }
+
+        if ($this->request->isPost) {
+            $file = UploadedFile::getInstance($model, 'uploadedFile');
+            if ($file) {
+                $filename = time() . '.' . $file->extension;
+                $file->saveAs(self::DIR . $filename);
+
+                $fileModel = new File();
+                $fileModel->filepath = self::DIR . $filename;
+                $fileModel->filename = $file->name;
+                $fileModel->save();
+
+                $model->file_id = $fileModel->id;
+            }
+
+            if ($model->load($this->request->post()) && $model->save()) {
+                $selectedAuthors = Yii::$app->request->post('Book')['bookAuthorIds'];
+                $authors = BookAuthor::findAll(['book_id' => $model->id]);
+                foreach ($authors as $author) {
+                    $author->delete();
+                }
+                if (!empty($selectedAuthors)) {
+                    foreach ($selectedAuthors as $authorId) {
+                        $bookAuthor = new BookAuthor();
+                        $bookAuthor->book_id = $model->id;
+                        $bookAuthor->author_id = $authorId;
+                        $bookAuthor->save();
+                    }
+                }
+                return $this->redirect(['view', 'id' => $model->id]);
+            }
         }
 
         return $this->render('update', [
@@ -123,7 +186,14 @@ class BookController extends Controller
      */
     public function actionDelete($id)
     {
-        $this->findModel($id)->delete();
+        $model = $this->findModel($id);
+
+        $fileModel = File::findOne($model->file_id);
+        if ($fileModel) {
+            unlink($fileModel->filepath);
+            $fileModel->delete();
+        }
+        $model->delete();
 
         return $this->redirect(['index']);
     }
@@ -142,5 +212,23 @@ class BookController extends Controller
         }
 
         throw new NotFoundHttpException('The requested page does not exist.');
+    }
+
+    /** 
+     * Действие на удаление файла
+     * 
+     * @param int $id индекс payment
+     * @param string $file наименование атрибута модели
+     * @return string|yii\web\Response
+     * @throws ForbiddenHttpException не хватает прав | акт закреплен
+     */
+    public function actionDeleteFile($id)
+    {
+        $model = $this->findModel($id);
+        $file_path = Yii::$app->basePath . '/web/' . $model->file->filepath;
+        if (unlink($file_path)) {
+            $model->file->delete();
+        }
+        return $this->redirect(['update', 'id' => $id]);
     }
 }

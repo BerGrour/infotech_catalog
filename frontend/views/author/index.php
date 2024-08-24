@@ -28,15 +28,24 @@ $this->params['breadcrumbs'][] = $this->title;
         'filterModel' => $searchModel,
         'columns' => [
             ['class' => 'yii\grid\SerialColumn'],
-            'fio',
+            [
+                'attribute'=> 'fio',
+                'format' => 'raw',
+                'value'=> function (Author $model) {
+                    return $model->getTitleLink();
+                }
+            ],
             [
                 'class' => ActionColumn::class,
+                'template' => '{update}{delete}',
                 'urlCreator' => function ($action, Author $model, $key, $index, $column) {
                     return Url::toRoute([$action, 'id' => $model->id]);
                 },
                 'visible' => Yii::$app->user->identity
             ],
         ],
+        'summary' => 'Показано <strong>{begin}-{end}</strong> из <strong>{totalCount}</strong> авторов',
+        'emptyText' => 'Авторов не найдено'
     ]); ?>
 
 

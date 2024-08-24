@@ -3,6 +3,8 @@
 namespace common\models;
 
 use Yii;
+use yii\helpers\Html;
+use yii\helpers\Url;
 
 /**
  * This is the model class for table "author".
@@ -52,5 +54,74 @@ class Author extends \yii\db\ActiveRecord
     public function getBookAuthors()
     {
         return $this->hasMany(BookAuthor::class, ['author_id' => 'id']);
+    }
+    
+    /**
+     * Gets query for [[Books]].
+     *
+     * @return \yii\db\ActiveQuery
+     */
+    public function getBooks()
+    {
+        return $this
+            ->hasMany(Book::class, ['id' => 'book_id'])
+            ->via('bookAuthors');
+    }
+
+    /**
+     * query книг за определенный год
+     * @param mixed $year
+     * @return Yii\db\ActiveQuery
+     */
+    public function getBooksYear($year)
+    {
+        return $this->getBooks()->where(['book.year' => $year]);
+    }
+
+    /**
+     * Ссылка на детальную страницу
+     * @return string
+     */
+    public function getUrl() {
+        return Url::to(['author/view', 'id' => $this->id]);
+    }
+
+    /**
+     * Кликабельное название на детальную страницу автора
+     * @return string
+     */
+    public function getTitleLink()
+    {
+        return Html::a(
+            $this->fio,
+            $this->getUrl(),
+            [
+                'title' => $this->fio,
+            ]
+        );
+    }
+
+    /**
+     * Топ 10 авторов по количеству книг за $year
+     * @param string $year
+     * @return Yii\db\ActiveQuery
+     */
+    public static function findTopAuthors($year)
+    {
+        if ($year === null) {
+            $year = date('Y');
+        }
+
+        return self::find()
+            ->select([
+                'author.id',
+                'author.fio',
+                'COUNT(book_author.book_id) AS book_count'
+            ])
+            ->joinWith('books')
+            ->where(['book.year' => $year])
+            ->groupBy('author.id')
+            ->orderBy(['book_count' => SORT_DESC])
+            ->limit(10);
     }
 }
