@@ -13,6 +13,7 @@ use yii\helpers\Url;
  * @property string $fio
  *
  * @property BookAuthor[] $bookAuthors
+ * @property Sub[] $subs
  */
 class Author extends \yii\db\ActiveRecord
 {
@@ -76,6 +77,16 @@ class Author extends \yii\db\ActiveRecord
     public function getBooksYear($year)
     {
         return $this->getBooks()->where(['book.year' => $year]);
+    }
+    
+    /**
+     * Gets query for [[Subs]].
+     *
+     * @return \yii\db\ActiveQuery
+     */
+    public function getSubs()
+    {
+        return $this->hasMany(Sub::class, ['author_id' => 'id']);
     }
 
     /**

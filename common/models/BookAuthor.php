@@ -48,6 +48,16 @@ class BookAuthor extends \yii\db\ActiveRecord
             'author_id' => 'Автор',
         ];
     }
+    
+    public function afterSave($insert, $changedAttributes)
+    {
+        parent::afterSave($insert, $changedAttributes);
+
+        if ($insert) {
+            $this->sendSms();
+        }
+    }
+
 
     /**
      * Gets query for [[Author]].
@@ -67,5 +77,27 @@ class BookAuthor extends \yii\db\ActiveRecord
     public function getBook()
     {
         return $this->hasOne(Book::class, ['id' => 'book_id']);
+    }
+
+    
+    /**
+     * Отправка смс-сообщений по подпискам
+     * @return void
+     */
+    public function sendSms()
+    {
+        $subs = $this->author->subs;
+        $smsData = [];
+        $i = 1;
+        foreach ($subs as $sub) {
+            $smsData[] = [
+                'id' => $i,
+                'to' => $sub->phone,
+                'text' => "У автора {$this->author->fio} опубликована новая книга."
+            ];
+            $i++;
+        }
+        Yii::$app->sms->send($smsData);
+        Yii::$app->session->setFlash("success", print_r($smsData, true));
     }
 }

@@ -5,6 +5,7 @@ namespace frontend\controllers;
 use common\models\Author;
 use common\models\AuthorSearch;
 use common\models\BookSearch;
+use common\models\Sub;
 use Yii;
 use yii\data\ArrayDataProvider;
 use yii\filters\AccessControl;
@@ -31,11 +32,11 @@ class AuthorController extends Controller
                     'class' => AccessControl::class,
                     'only' => ['create', 'update', 'delete'],
                     'rules' => [
-                        // [
-                        //     'actions' => ['sub'],
-                        //     'allow' => true,
-                        //     'roles' => ['?'],
-                        // ],
+                        [
+                            'actions' => ['sub'],
+                            'allow' => true,
+                            'roles' => ['?'],
+                        ],
                         [
                             'actions' => ['create', 'update','delete'],
                             'allow' => true,
@@ -218,10 +219,25 @@ class AuthorController extends Controller
 
     /**
      * Подписка на автора
-     * @return void
+     * @param int $author_id индекс автора
+     * @return string|\yii\web\Response
      */
-    // public function actionSub()
-    // {
+    public function actionSub($author_id)
+    {
+        $model = new Sub();
+        $model->author_id = $author_id;
 
-    // }
+        if ($this->request->isPost) {
+            if ($model->load($this->request->post()) && $model->save()) {
+                Yii::$app->session->setFlash('success', 'Подписка успешно оформлена');
+                return $this->redirect(['view', 'id' => $model->author->id]);
+            }
+        } else {
+            $model->loadDefaultValues();
+        }
+
+        return $this->render('sub_form', [
+            'model' => $model,
+        ]);
+    }
 }

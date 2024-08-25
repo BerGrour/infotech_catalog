@@ -13,5 +13,9 @@ return [
             'class' => \yii\symfonymailer\Mailer::class,
             'viewPath' => '@common/mail',
         ],
+        'sms' => [
+            'class' => common\components\Sms::class,
+            'apikey' => 'XXXXXXXXXXXXYYYYYYYYYYYYZZZZZZZZXXXXXXXXXXXXYYYYYYYYYYYYZZZZZZZZ'
+        ]
     ],
 ];

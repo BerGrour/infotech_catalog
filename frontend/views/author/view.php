@@ -17,6 +17,7 @@ $this->params['breadcrumbs'][] = $this->title;
 
     <h1><?= Html::encode($this->title) ?></h1>
 
+
     <?php if(Yii::$app->user->identity) { ?>
         <p>
             <?= Html::a('Изменить', ['update', 'id' => $model->id], ['class' => 'btn btn-primary']) ?>
@@ -27,6 +28,10 @@ $this->params['breadcrumbs'][] = $this->title;
                     'method' => 'post',
                 ],
             ]) ?>
+        </p>
+    <?php } else { ?>
+        <p>
+            <?=Html::a('Подписаться', ['sub', 'author_id'=> $model->id], ['class' => 'btn btn-primary']) ?>
         </p>
     <?php } ?>
 
