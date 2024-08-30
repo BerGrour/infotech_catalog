@@ -156,7 +156,7 @@ class BookController extends Controller
 
             if ($model->load($this->request->post()) && $model->save()) {
                 $selectedAuthors = Yii::$app->request->post('Book')['bookAuthorIds'];
-                $authors = BookAuthor::findAll(['book_id' => $model->id]);
+                $authors = $model->bookAuthors;
                 foreach ($authors as $author) {
                     $author->delete();
                 }
@@ -188,7 +188,7 @@ class BookController extends Controller
     {
         $model = $this->findModel($id);
 
-        $fileModel = File::findOne($model->file_id);
+        $fileModel = $model->file;
         if ($fileModel) {
             unlink($fileModel->filepath);
             $fileModel->delete();
